@@ -1,16 +1,17 @@
 """Configuración del simulador.
 
 Contiene las dataclasses de configuración (con los valores por defecto del
-informe), la carga desde ``config.json``, la sobrescritura con argumentos de
-línea de comandos y todas las validaciones de entrada. Cualquier parámetro
-fuera de su dominio lanza ``ErrorConfiguracion`` con un mensaje claro.
+informe), la carga desde ``config.json`` y todas las validaciones de entrada.
+La sobrescritura con argumentos de línea de comandos está en
+``controller/cli.py``. Cualquier parámetro fuera de su dominio lanza
+``ErrorConfiguracion`` con un mensaje claro.
 """
 
 from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass, field, fields, replace
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -338,62 +339,3 @@ def cargar_configuracion(ruta: Path) -> Configuracion:
             f"{ruta.name} está mal formado (línea {error.lineno}, columna {error.colno}): {error.msg}"
         ) from None
     return desde_diccionario(contenido)
-
-
-# ---------------------------------------------------------------------------
-# Sobrescritura con argumentos de línea de comandos
-# ---------------------------------------------------------------------------
-_ARGUMENTOS: dict[str, tuple[str, str]] = {
-    "mu": ("simulacion", "mu"),
-    "H": ("simulacion", "H"),
-    "replicas": ("simulacion", "n_replicas"),
-    "semilla": ("simulacion", "semilla_base"),
-    "confianza": ("simulacion", "confianza"),
-    "barrido_lam": ("barrido", "lam"),
-    "barrido_T": ("barrido", "T"),
-    "barrido_g": ("barrido", "valores_g"),
-    "carpeta_salida": ("salida", "carpeta"),
-    "eventos": ("salida", "eventos_traza"),
-    "ciclos": ("salida", "ciclos_mostrados"),
-    "replica": ("salida", "replica_detalle"),
-    "guardar_graficas": ("salida", "guardar_graficas"),
-    "mostrar_graficas": ("salida", "mostrar_graficas"),
-    "ventana": ("animacion", "ventana_s"),
-    "velocidad": ("animacion", "velocidad"),
-    "fps": ("animacion", "fps"),
-    "max_fila": ("animacion", "max_vehiculos_fila"),
-    "transicion": ("animacion", "duracion_transicion_s"),
-    "gif": ("animacion", "guardar_gif"),
-}
-"""Argumento de CLI (``dest`` de argparse) → (sección, campo) que sobrescribe."""
-
-
-def _con_escenario(config: Configuracion, nombre: str | None, cambios: dict[str, float]) -> Configuracion:
-    """Aplica λ, g y r al escenario ``nombre`` (por defecto, el base).
-
-    Si el escenario no existe, se crea copiando el base y aplicando los cambios.
-    """
-    if not cambios:
-        return config
-    objetivo = config.buscar_escenario(nombre or config.escenario_base)
-    if objetivo is None:
-        nuevo = replace(config.escenario(config.escenario_base), nombre=nombre.strip(), **cambios)
-        return replace(config, escenarios=config.escenarios + (nuevo,))
-    escenarios = tuple(replace(e, **cambios) if e is objetivo else e for e in config.escenarios)
-    return replace(config, escenarios=escenarios)
-
-
-def aplicar_argumentos(config: Configuracion, argumentos: Mapping[str, Any]) -> Configuracion:
-    """Devuelve la configuración con los argumentos de CLI distintos de None aplicados."""
-    cambios: dict[str, dict[str, Any]] = {}
-    for argumento, (seccion, campo) in _ARGUMENTOS.items():
-        valor = argumentos.get(argumento)
-        if valor is not None:
-            cambios.setdefault(seccion, {})[campo] = tuple(valor) if isinstance(valor, list) else valor
-    if cambios:
-        config = replace(config, **{s: replace(getattr(config, s), **c) for s, c in cambios.items()})
-    valores_escenario = {k: argumentos[k] for k in ("lam", "g", "r") if argumentos.get(k) is not None}
-    config = _con_escenario(config, argumentos.get("escenario"), valores_escenario)
-    if argumentos.get("animar"):
-        config = replace(config, animacion=replace(config.animacion, escenario=argumentos["animar"]))
-    return config
