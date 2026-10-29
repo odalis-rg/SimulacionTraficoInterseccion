@@ -114,7 +114,8 @@ def textos_optimo(barrido: ResultadoBarrido) -> list[str]:
         textos.append(f"Menor área bajo Q(t) (Q̄ y demora total en cola): g = {optimo.g:g} s, r = {optimo.r:g} s "
                       f"(g/T = {optimo.fraccion_verde:.3f}).")
     if barrido.indice_min_wq is not None and barrido.indice_min_wq != barrido.indice_optimo:
-        textos.append(f"El menor Wq medio se obtiene con g = {barrido.resultados[barrido.indice_min_wq].parametros.g:g} s.")
+        g_min_wq = barrido.resultados[barrido.indice_min_wq].parametros.g
+        textos.append(f"El menor Wq medio se obtiene con g = {g_min_wq:g} s.")
     textos.append("Es el mejor valor solo entre los g probados y para este modelo de un acceso; no es una "
                   "optimización global de la intersección (con T fijo, más verde aquí implica más rojo en los "
                   "accesos en conflicto, que este modelo no representa).")

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import functools
 import math
-import os
 from pathlib import Path
 from typing import Callable, Sequence, TypeVar
 
@@ -24,11 +23,11 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from config.entorno import consejo_sandbox
 from controller.analysis import ResultadoBarrido, ResultadoEscenario
 from model.statistics import INDICADORES_POR_CLAVE, area_acumulada, serie_cola
 from model.traffic_light import Fase, IntervaloFase
 from view.csv_export import sufijo_archivo
+from view.entorno_grafico import diagnostico_grafico
 from view.style import ESTILO_GRAFICAS, PALETA, colores_ordinales
 
 ANCHO_FIGURA = 10.0
@@ -41,49 +40,8 @@ ALTO_EXTRA = 1.0
 COLUMNAS_MAX = 3
 """Columnas máximas en las figuras de múltiplos pequeños."""
 ETIQUETAS_EJE: dict[str, str] = {"q_media": r"$\bar{Q}$ (veh)", "wq_media": r"$W_q$ (s/veh)"}
-_BACKENDS_NO_INTERACTIVOS = {"agg", "pdf", "ps", "svg", "pgf", "cairo", "template"}
-_BACKENDS_ALTERNATIVOS = ("TkAgg", "GTK4Agg", "GTK3Agg", "QtAgg")
-"""Backends con ventanas que se prueban si matplotlib eligió uno sin ventanas."""
 
 F = TypeVar("F", bound=Callable[..., object])
-
-
-# ---------------------------------------------------------------------------
-# Entorno gráfico
-# ---------------------------------------------------------------------------
-def _es_interactivo(backend: str) -> bool:
-    nombre = backend.lower()
-    return nombre not in _BACKENDS_NO_INTERACTIVOS and "inline" not in nombre
-
-
-def diagnostico_grafico() -> str | None:
-    """None si matplotlib puede abrir ventanas; si no, la causa y cómo resolverla.
-
-    Si matplotlib eligió un backend sin ventanas pero el proceso tiene sesión
-    gráfica y MPLBACKEND no lo impone, prueba antes otros backends con ventanas.
-    """
-    try:
-        backend = matplotlib.get_backend()
-    except Exception as error:  # noqa: BLE001 — se informa la causa al usuario
-        return f"matplotlib no pudo iniciar un backend gráfico ({error})."
-    if _es_interactivo(backend):
-        return None
-    sandbox = consejo_sandbox()
-    if sandbox:
-        return sandbox
-    forzado = os.environ.get("MPLBACKEND")
-    if forzado:
-        return f"la variable MPLBACKEND={forzado} impone un backend sin ventanas; ejecute «unset MPLBACKEND»."
-    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
-        return ("este proceso no tiene DISPLAY ni WAYLAND_DISPLAY (sesión SSH, consola TTY o terminal sin acceso "
-                "al escritorio); ejecútelo desde una terminal abierta en el escritorio.")
-    for alternativo in _BACKENDS_ALTERNATIVOS:
-        try:
-            plt.switch_backend(alternativo)
-            return None
-        except Exception:  # noqa: BLE001 — se prueba el siguiente backend
-            continue
-    return f"matplotlib usa «{backend}» y no hay toolkit con ventanas; instale Tk: sudo apt install python3-tk."
 
 
 # ---------------------------------------------------------------------------
@@ -116,7 +74,8 @@ def sombrear_fases(ax: Axes, fases: Sequence[IntervaloFase], fin: float) -> None
     """Franjas verticales rojo/verde del calendario de fases dentro de [0, fin]."""
     for fase, color in ((Fase.ROJO, PALETA.franja_roja), (Fase.VERDE, PALETA.franja_verde)):
         tramos = [(f.inicio, min(f.fin, fin) - f.inicio) for f in fases if f.fase is fase and f.inicio < fin]
-        ax.broken_barh(tramos, (0, 1), transform=ax.get_xaxis_transform(), facecolors=color, edgecolors="none", zorder=0)
+        ax.broken_barh(tramos, (0, 1), transform=ax.get_xaxis_transform(), facecolors=color, edgecolors="none",
+                       zorder=0)
 
 
 def leyenda_fases() -> list[object]:

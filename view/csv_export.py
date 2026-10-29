@@ -60,7 +60,8 @@ class ExportadorCSV:
             (i, semilla, *(asdict(m)[c] for c in campos))
             for i, (semilla, m) in enumerate(zip(resultado.semillas, resultado.metricas), start=1)
         ]
-        return self._escribir(f"replicas_{nombre_archivo(resultado.nombre)}.csv", ("replica", "semilla", *campos), filas)
+        encabezado = ("replica", "semilla", *campos)
+        return self._escribir(f"replicas_{nombre_archivo(resultado.nombre)}.csv", encabezado, filas)
 
     def ciclos(self, nombre: str, replica: int, detalle: ResultadoReplica) -> Path:
         """Vehículos atendidos y cola residual de cada ciclo de una réplica."""

@@ -44,6 +44,10 @@ def _ajustar(texto: str, ancho: int, alineacion: str) -> str:
     return texto + relleno if alineacion == "<" else relleno + texto
 
 
+def _si_no(valor: bool) -> str:
+    return "sí" if valor else "no"
+
+
 def tabla(encabezados: Sequence[str], filas: Sequence[Sequence[str]], alineaciones: str | None = None) -> str:
     """Tabla de texto con columnas alineadas; ``alineaciones`` tiene '<' o '>' por columna."""
     alineaciones = alineaciones or "<" + ">" * (len(encabezados) - 1)
@@ -140,7 +144,7 @@ class VistaConsola:
             ("Barrido de g", f"λ = {b.lam:g} veh/s, T = {b.T:g} s, g = {', '.join(f'{g:g}' for g in b.valores_g)} s"),
             ("Réplica de detalle", f"{s.replica_detalle} (traza, ciclos, Q(t) y animación)"),
             ("Carpeta de salida", s.carpeta),
-            ("Gráficas", f"guardar: {'sí' if s.guardar_graficas else 'no'}, mostrar: {'sí' if s.mostrar_graficas else 'no'}"),
+            ("Gráficas", f"guardar: {_si_no(s.guardar_graficas)}, mostrar: {_si_no(s.mostrar_graficas)}"),
             ("Animación", f"{a.escenario}: primeros {a.ventana_s:g} s a ×{a.velocidad:g}, {a.fps} fps, "
                           f"máx. {a.max_vehiculos_fila} veh. en fila, GIF: {'sí' if a.guardar_gif else 'no'}"),
         ]
@@ -212,7 +216,8 @@ class VistaConsola:
         self.titulo(f"Traza de eventos — {nombre}, réplica {replica} (semilla {resultado.semilla})")
         filas = [fila_traza(f) for f in resultado.traza[:max_eventos]]
         print(tabla(ENCABEZADOS_TRAZA, filas, "><<<>>>"))
-        self.mensaje(f"Se muestran {len(filas)} de {len(resultado.traza)} eventos; estado justo después de cada evento.")
+        self.mensaje(f"Se muestran {len(filas)} de {len(resultado.traza)} eventos; "
+                     "estado justo después de cada evento.")
         self.mensaje("Q(t) = vehículos en espera, sin el que está en servicio. "
                      "Eventos simultáneos: SALIDA → CAMBIO_FASE → LLEGADA.")
 

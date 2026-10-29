@@ -13,13 +13,14 @@ Reglas del modelo (una cola FIFO ilimitada y un servidor):
 * Eventos simultáneos: salida, luego cambio de fase y luego llegada
   (ver ``model/events.py``).
 
-Aleatoriedad: cada réplica crea un ``numpy.random.Generator`` dedicado SOLO a
-los intervalos entre llegadas. Como ninguna otra parte del modelo consume
-números aleatorios, la misma semilla produce el mismo flujo de llegadas
-aunque cambien g o r (números aleatorios comunes). Así, al comparar
-configuraciones, las diferencias se deben a los tiempos de fase y no al ruido
-de muestreo, y la misma configuración con la misma semilla reproduce la misma
-traza y las mismas métricas.
+Aleatoriedad: las llegadas vienen de un ``ProcesoLlegadas`` inyectado (por
+defecto ``LlegadasPoisson``, con un generador dedicado solo a las llegadas).
+Como ninguna otra parte del modelo consume números aleatorios, la misma
+semilla produce el mismo flujo de llegadas aunque cambien g o r (números
+aleatorios comunes). Así, al comparar configuraciones, las diferencias se
+deben a los tiempos de fase y no al ruido de muestreo, y la misma
+configuración con la misma semilla reproduce la misma traza y las mismas
+métricas.
 """
 
 from __future__ import annotations
@@ -27,9 +28,8 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-import numpy as np
-
 from config.settings import ParametrosModelo
+from model.arrivals import LlegadasPoisson, ProcesoLlegadas
 from model.events import AgendaEventos, Evento, RegistroTraza, TipoEvento
 from model.statistics import ContadorCiclos, MetricasReplica, RegistroCiclo, calcular_metricas
 from model.traffic_light import Fase, IntervaloFase, Semaforo
@@ -60,12 +60,16 @@ class ResultadoReplica:
 
 
 class Simulador:
-    """Simula una réplica del acceso semaforizado. Cada instancia se ejecuta una vez."""
+    """Simula una réplica del acceso semaforizado. Cada instancia se ejecuta una vez.
 
-    def __init__(self, parametros: ParametrosModelo, semilla: int) -> None:
+    ``llegadas`` permite inyectar otro proceso de llegadas; por defecto son de
+    Poisson con tasa λ y la semilla de la réplica.
+    """
+
+    def __init__(self, parametros: ParametrosModelo, semilla: int, llegadas: ProcesoLlegadas | None = None) -> None:
         self._p = parametros
         self._semilla = semilla
-        self._rng_llegadas = np.random.default_rng(semilla)
+        self._llegadas = llegadas if llegadas is not None else LlegadasPoisson(parametros.lam, semilla)
         self._agenda = AgendaEventos()
         self._semaforo = Semaforo(parametros)
         self._ciclos = ContadorCiclos()
@@ -99,10 +103,9 @@ class Simulador:
     # Programación de eventos
     # ------------------------------------------------------------------
     def _programar_llegada(self, desde: float) -> None:
-        """Programa la siguiente llegada si cae dentro del horizonte (λ = 0: ninguna)."""
-        if self._p.lam == 0:
-            return
-        t = _dentro_de(desde + self._rng_llegadas.exponential(1.0 / self._p.lam), self._p.H)
+        """Programa la siguiente llegada del proceso si cae dentro del horizonte."""
+        siguiente = self._llegadas.siguiente(desde)
+        t = None if siguiente is None else _dentro_de(siguiente, self._p.H)
         if t is not None:
             self._agenda.programar(t, TipoEvento.LLEGADA)
 
