@@ -1,4 +1,5 @@
-# Simulación de un acceso semaforizado con teoría de colas
+# Modelado y análisis del flujo vehicular mediante teoría de colas para la optimización de tiempos de semáforo en intersecciones viales.
+
 
 ## Descripción
 
@@ -8,9 +9,6 @@ uno en 1/μ s, solo durante el verde. Con réplicas independientes e intervalos
 de confianza compara configuraciones del semáforo y muestra cómo cambian la
 cola y la espera según el tiempo de verde.
 
-Es la parte computacional del proyecto *Modelado y análisis del flujo
-vehicular mediante teoría de colas para la optimización de tiempos de semáforo
-en intersecciones viales*.
 
 ## Tecnologías
 
@@ -34,7 +32,7 @@ Requisito: Python 3.10 o superior con Tkinter.
 ```bash
 cd simulacion_semaforo
 python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate        
 pip install -r requirements.txt
 ```
 
@@ -45,45 +43,18 @@ comandos se ejecutan con `python3` en lugar de `python`.
 sudo apt install python3-numpy python3-scipy python3-matplotlib python3-pil python3-pytest python3-tk
 ```
 
-**VS Code instalado como Flatpak.** Su terminal integrada no tiene estas
-bibliotecas. `main.py` lo detecta y se vuelve a ejecutar en el sistema, así que
-no hace falta configurar nada.
-
 ## Ejecución
 
 Desde `simulacion_semaforo/`, con el entorno virtual activado:
 
 | Comando | Acción |
 |---|---|
-| `python main.py --gui` | Interfaz gráfica |
-| `python main.py` | Menú de consola |
-| `python main.py --pruebas --no-menu` | Pruebas de verificación |
-| `python main.py --all --no-menu` | Los 5 escenarios, comparados con la base |
-| `python main.py --escenario "Verde largo" --no-menu` | Un escenario |
-| `python main.py --barrido --no-menu` | Barrido de g (Tabla I y Fig. 2) |
-| `python main.py --traza Base --no-menu` | Traza de eventos de una réplica |
-| `python main.py --animate Base --gif --no-menu` | Animación; también la guarda como GIF |
-| `python -m pytest -v` | Pruebas con pytest |
-| `python main.py --help` | Todas las opciones |
-
-Sin `--no-menu`, al terminar las acciones se abre el menú. Atajos de la
-interfaz:
-
-* F5: simular.
-* F11: pantalla completa.
-* Ctrl+S: guardar los resultados.
-
-Las pestañas Ciclos y Traza se muestran desde *Ver → Pestañas técnicas*.
+| `python main.py --gui` | Abre la interfaz gráfica |
+| `python main.py` | Abre el menú de consola |
 
 ### Configuración
 
-Los parámetros están en `config/config.json`. También se pueden cambiar al
-ejecutar, sin editar el archivo:
-
-```bash
-python main.py --all -n 50 --H 7200 --no-menu                          # 50 réplicas de 2 h
-python main.py --escenario Prueba --lam 0.2 --g 25 --r 35 --no-menu    # escenario nuevo
-```
+Los parámetros están en `config/config.json`.
 
 Valores por defecto:
 
@@ -100,6 +71,8 @@ Valores por defecto:
 | Sobresaturado | 0.35 | 30 | 30 |
 
 ## Estructura del proyecto
+
+**Arquitectura M-V-C**
 
 ```
 simulacion_semaforo/
@@ -133,24 +106,11 @@ simulacion_semaforo/
 │   └── gui/                   # Interfaz gráfica: ventana, panel de escenarios y pestañas
 ├── tests/
 │   └── test_verification.py   # Pruebas de verificación
-├── docs/capturas/             # Imágenes de este README
+├── docs/capturas/             # Imágenes del README
 ├── output/                    # Resultados generados
 ├── pytest.ini
 └── requirements.txt
 ```
-
-**Arquitectura (MVC y SOLID).**
-
-* El modelo no depende de las demás capas. El controlador ejecuta el modelo y
-  las vistas (consola, interfaz, gráficas, CSV y animación) solo muestran los
-  resultados.
-* Cada clase tiene una sola responsabilidad y recibe sus dependencias en el
-  constructor. `controller/aplicacion.py` es el único lugar que crea y conecta
-  las piezas.
-* Se puede ampliar sin modificar lo existente:
-  * un proceso de llegadas nuevo implementa `ProcesoLlegadas`;
-  * una gráfica nueva es una fila más en `FIGURAS`;
-  * una pestaña nueva se registra como receptora en la ventana.
 
 ## Información adicional
 
@@ -188,13 +148,11 @@ simulacion_semaforo/
 
 ### Limitaciones
 
-* No se ha validado con datos de campo, y μ = 0.5 veh/s es un valor provisional.
+* No se ha validado con datos de campo, y μ = 0.5 veh/s es un dato sintético.
 * Se modela un solo acceso. Con T fijo, más verde siempre reduce su cola, por
   eso el mejor g del barrido es siempre el mayor probado. No es una
   optimización de toda la intersección.
-* No hay fase amarilla, tiempo perdido al arrancar ni llegadas en pelotón.
-* La simulación empieza vacía y sin calentamiento, así que los resultados
-  describen el horizonte simulado y no un régimen estacionario.
+* No hay fase amarilla, por el tiempo perdido al arrancar y para una abstracción mas simple del modelo.
 
 ### Capturas
 
@@ -206,5 +164,9 @@ simulacion_semaforo/
 
 ### Autores
 
-Juan Calopino, Daniel Saavedra, Anthony Yaguana y Odalis Rosillo.
-Computación, Universidad Nacional de Loja (Ecuador).
+- Juan Calopino
+- Daniel Saavedra
+- Anthony Yaguana
+- Odalis Rosillo.
+  
+**Universidad Nacional de Loja - Computación**
